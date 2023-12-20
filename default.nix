@@ -1,6 +1,6 @@
 { lib, rustPlatform }:
 rustPlatform.buildRustPackage {
-  pname = "mkscript";
+  pname = "pmv";
   version = "0.1.0";
 
   src = ./.;
@@ -11,8 +11,8 @@ rustPlatform.buildRustPackage {
 
   meta = with lib; {
     description = "Helper for creating a new Rust scripting project";
-    homepage = "https://github.com/bzm3r/mkscript";
+    homepage = "https://github.com/bzm3r/pmv";
     license = with licenses; [ asl20 mit ];
-    mainProgram = "mkscript";
+    mainProgram = "pmv";
   };
 }

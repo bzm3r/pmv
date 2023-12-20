@@ -1,5 +1,5 @@
 [package]
-name = "ghmv"
+name = "pmv"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,4 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.75"
 bpaf = { version = "0.9.8", features = ["autocomplete", "docgen", "bright-color", "derive"] }
+crossbeam-channel = "0.5.9"
+ignore = { version = "0.4.21", features = ["simd-accel"] }
+tree_magic_mini = { version = "3.0.3", features = ["tree_magic_db", "with-gpl-data"] }
 xshell = "0.2.5"
