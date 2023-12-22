@@ -86,11 +86,11 @@ impl AsRef<OsStr> for Directory {
 struct Pmv {
     /// Example of a positional argument.
     #[bpaf(positional("PROJECT_PATH"))]
-    curr_dir: InputDir,
+    existing: InputDir,
 
     /// New project name.
     #[bpaf(positional("NEW_NAME"))]
-    new_name: String,
+    new: String,
 }
 
 fn is_file(dir_entry: &DirEntry) -> bool {
@@ -183,48 +183,50 @@ fn find_and_replace_in_dir(
 }
 
 fn main() -> anyhow::Result<()> {
-    let Pmv { curr_dir, new_name } = pmv().run();
+    let Pmv { existing, new } = pmv().run();
 
     let sh = Shell::new()?;
     let cwd = sh.current_dir();
-    let curr_dir = curr_dir.canonicalize(&cwd)?;
-    let new_path = curr_dir
+    let existing = existing.canonicalize(&cwd)?;
+    let new_path = existing
         .path
         .parent()
         .map(|parent| parent.to_path_buf())
-        .unwrap_or_else(|| curr_dir.path.clone())
-        .join(&new_name);
+        .unwrap_or_else(|| existing.path.clone())
+        .join(&new);
 
     if new_path.exists() {
         bail!("{} already exists!", new_path.display());
-    } else if curr_dir.path == new_path {
+    } else if existing.path == new_path {
         println!("New path is the same as current path.")
     }
 
     println!(
         "Moving from {} to {}.",
-        curr_dir.path.display(),
+        existing.path.display(),
         new_path.display()
     );
-    rename(&curr_dir.path, &new_path).with_context(|| {
+    rename(&existing.path, &new_path).with_context(|| {
         format!(
             "Failed to rename {} to {}.",
-            curr_dir.path.display(),
+            existing.path.display(),
             new_path.display(),
         )
     })?;
 
-    let old_name = curr_dir.name.clone();
+    sh.change_dir(&new_path);
+
+    let old_name = existing.name.clone();
     find_and_replace_in_dir(
         sh.current_dir(),
         old_name.to_str().ok_or(anyhow!(
             "Could not convert name of the existing project () to a string."
         ))?,
-        &new_name,
+        &new,
     )?;
 
     sh.change_dir(&new_path);
-    if let Err(err) = cmd!(sh, "gh repo rename {new_name} --yes").run() {
+    if let Err(err) = cmd!(sh, "gh repo rename {new} --yes").run() {
         println!("Error creating a GitHub repo: {err}");
     }
 
