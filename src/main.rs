@@ -182,6 +182,15 @@ fn find_and_replace_in_dir(
     Ok(())
 }
 
+fn has_git_repo(old_name: &str, path: &Path) -> bool {
+    if let Ok(config) = fs::read_to_string(path.join(".git").join("config")) {
+        return config.contains(&format!(
+            "url = \"https://github.com/bzm3r/{old_name}\""
+        ));
+    }
+    false
+}
+
 fn main() -> anyhow::Result<()> {
     let Pmv { existing, new } = pmv().run();
 
@@ -216,18 +225,19 @@ fn main() -> anyhow::Result<()> {
 
     sh.change_dir(&new_path);
 
-    let old_name = existing.name.clone();
-    find_and_replace_in_dir(
-        sh.current_dir(),
-        old_name.to_str().ok_or(anyhow!(
-            "Could not convert name of the existing project () to a string."
-        ))?,
-        &new,
-    )?;
+    let old_name = existing.name.to_str().with_context(|| {
+        format!(
+            "Could not convert folder name of the existing project at {} to a string.",
+            &existing.path.display()
+        )
+    })?;
+    find_and_replace_in_dir(sh.current_dir(), old_name, &new)?;
 
     sh.change_dir(&new_path);
-    if let Err(err) = cmd!(sh, "gh repo rename {new} --yes").run() {
-        println!("Error creating a GitHub repo: {err}");
+    if has_git_repo(old_name, &new_path) {
+        if let Err(err) = cmd!(sh, "gh repo rename {new} --yes").run() {
+            println!("Error creating a GitHub repo: {err}");
+        }
     }
 
     Ok(())
